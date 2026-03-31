@@ -37,6 +37,7 @@
     "autoprefixer": "^10.4.13",
     "electron": "^22.3.27",
     "electron-builder": "^23.6.0",
+    "esbuild": "^0.27.4",
     "eslint": "^8.34.0",
     "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-prettier": "^4.2.1",
@@ -74,6 +75,9 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.1.4",
+    "@ckeditor/ckeditor5-editor-classic": "^43.0.0",
+    "@ckeditor/ckeditor5-essentials": "^43.0.0",
+    "@ckeditor/ckeditor5-paragraph": "^43.0.0",
     "@ckeditor/ckeditor5-react": "^8.0.0",
     "@livekit/components-react": "2.6.9",
     "@livekit/components-styles": "1.1.4",

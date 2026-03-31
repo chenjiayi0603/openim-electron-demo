@@ -36,3 +36,4 @@ yarn.lock
 # sdk core
 open-im-sdk-core.*
 OpenIM_*
+_output/run/openim-electron-demo.pid
