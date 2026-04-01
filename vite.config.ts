@@ -1,18 +1,28 @@
 import { rmSync } from "node:fs";
 import path from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import electron from "vite-electron-plugin";
 import { customStart, loadViteEnv } from "vite-electron-plugin/plugin";
 import pkg from "./package.json";
 import legacy from "@vitejs/plugin-legacy";
 import { createRequire } from "node:module";
+import {
+  applyHostToProcessEnv,
+  hostImUrls,
+  resolveBaseHost,
+} from "./vite.host-env";
 const require = createRequire(import.meta.url);
 // import visualizer from "rollup-plugin-visualizer";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
   rmSync("dist-electron", { recursive: true, force: true });
+
+  const loaded = loadEnv(mode, process.cwd(), "");
+  const baseHost = resolveBaseHost(loaded.VITE_BASE_HOST, command);
+  const hostEnv = hostImUrls(baseHost);
+  applyHostToProcessEnv(hostEnv);
 
   const sourcemap = command === "serve" || !!process.env.VSCODE_DEBUG;
 
@@ -66,6 +76,12 @@ export default defineConfig(({ command }) => {
       })()
       : undefined,
     clearScreen: false,
+    define: {
+      "import.meta.env.VITE_BASE_HOST": JSON.stringify(hostEnv.VITE_BASE_HOST),
+      "import.meta.env.VITE_WS_URL": JSON.stringify(hostEnv.VITE_WS_URL),
+      "import.meta.env.VITE_API_URL": JSON.stringify(hostEnv.VITE_API_URL),
+      "import.meta.env.VITE_CHAT_URL": JSON.stringify(hostEnv.VITE_CHAT_URL),
+    },
     build: {
       sourcemap: false,
       cssCodeSplit: true,
