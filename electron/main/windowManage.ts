@@ -87,6 +87,18 @@ export function createMainWindow() {
     mainWindow?.webContents.send("main-process-message", new Date().toLocaleString());
   });
 
+  // Mirror renderer logs into terminal/dev.log for troubleshooting in Electron mode.
+  mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    const levelMap: Record<number, string> = {
+      0: "verbose",
+      1: "info",
+      2: "warn",
+      3: "error",
+    };
+    const tag = levelMap[level] ?? `level-${level}`;
+    console.log(`[renderer:${tag}] ${sourceId}:${line} ${message}`);
+  });
+
   // // Make all links open with the browser, not with the application
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("https:") || url.startsWith("http:")) shell.openExternal(url);

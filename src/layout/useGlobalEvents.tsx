@@ -153,7 +153,16 @@ export function useGlobalEvent() {
       initStore();
     } catch (error) {
       console.error(error);
-      if ((error as WsResponse).errCode !== 10102) {
+      const errCode = (error as WsResponse).errCode;
+      const errMsg = String((error as WsResponse).errMsg ?? "");
+      const isDevElectron = Boolean(window.electronAPI) && import.meta.env.DEV;
+      const isMultiInit =
+        errCode === 10102 || /initialize multiple times|already|repeat|exist/i.test(errMsg);
+
+      // Electron 开发态下热更新常出现 SDK 重复初始化，不应把用户踢回登录页。
+      if (isDevElectron && isMultiInit) {
+        initStore();
+      } else if (errCode !== 10102) {
         navigate("/login");
       }
     }

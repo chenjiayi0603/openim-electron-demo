@@ -5,12 +5,22 @@ import { FC, memo, useCallback, useRef, useState } from "react";
 import OIMAvatar from "@/components/OIMAvatar";
 import { formatMessageTime } from "@/utils/imCommon";
 
+import AtTextMessageRender from "./AtTextMessageRender";
+import CardMessageRender from "./CardMessageRender";
 import CatchMessageRender from "./CatchMsgRenderer";
+import CustomMessageRender from "./CustomMessageRender";
+import FaceMessageRender from "./FaceMessageRender";
+import FileMessageRender from "./FileMessageRender";
+import LocationMessageRender from "./LocationMessageRender";
 import MediaMessageRender from "./MediaMessageRender";
+import MergeMessageRender from "./MergeMessageRender";
 import styles from "./message-item.module.scss";
 import MessageItemErrorBoundary from "./MessageItemErrorBoundary";
 import MessageSuffix from "./MessageSuffix";
+import QuoteMessageRender from "./QuoteMessageRender";
 import TextMessageRender from "./TextMessageRender";
+import VideoMessageRender from "./VideoMessageRender";
+import VoiceMessageRender from "./VoiceMessageRender";
 
 export interface IMessageItemProps {
   message: MessageItemType;
@@ -23,6 +33,16 @@ export interface IMessageItemProps {
 const components: Record<number, FC<IMessageItemProps>> = {
   [MessageType.TextMessage]: TextMessageRender,
   [MessageType.PictureMessage]: MediaMessageRender,
+  [MessageType.VoiceMessage]: VoiceMessageRender,
+  [MessageType.VideoMessage]: VideoMessageRender,
+  [MessageType.FileMessage]: FileMessageRender,
+  [MessageType.AtTextMessage]: AtTextMessageRender,
+  [MessageType.MergeMessage]: MergeMessageRender,
+  [MessageType.CardMessage]: CardMessageRender,
+  [MessageType.LocationMessage]: LocationMessageRender,
+  [MessageType.CustomMessage]: CustomMessageRender,
+  [MessageType.QuoteMessage]: QuoteMessageRender,
+  [MessageType.FaceMessage]: FaceMessageRender,
 };
 
 const MessageItem: FC<IMessageItemProps> = ({

@@ -192,6 +192,38 @@ stop_server() {
   log "服务已停止"
 }
 
+kill_matching_processes() {
+  local pattern="$1"
+  local pids
+  pids="$(pgrep -f "$pattern" || true)"
+  if [[ -z "${pids:-}" ]]; then
+    return
+  fi
+
+  log "清理残留进程: $pattern"
+  # shellcheck disable=SC2086
+  kill $pids >/dev/null 2>&1 || true
+  sleep 1
+
+  local alive=()
+  local pid
+  for pid in $pids; do
+    if kill -0 "$pid" >/dev/null 2>&1; then
+      alive+=("$pid")
+    fi
+  done
+
+  if [[ ${#alive[@]} -gt 0 ]]; then
+    kill -9 "${alive[@]}" >/dev/null 2>&1 || true
+  fi
+}
+
+cleanup_project_processes() {
+  kill_matching_processes "$ROOT_DIR/node_modules/electron/dist/electron"
+  kill_matching_processes "$ROOT_DIR/node_modules/.bin/vite"
+  rm -f "$PID_FILE"
+}
+
 status_server() {
   local pid
   pid="$(read_pid || true)"
@@ -270,9 +302,10 @@ case "$cmd" in
     start_server
     ;;
   restart-electron)
-    stop_server
     DEV_TARGET=electron
     export DEV_TARGET
+    stop_server
+    cleanup_project_processes
     start_server
     ;;
   status)

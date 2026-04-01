@@ -69,6 +69,26 @@ export const notificationMessageFormat = (msg: MessageItem) => {
   const getName = (user: PublicUserItem) => {
     return user.userID === selfID ? t("you") : user.nickname;
   };
+  const getNotificationFallbackText = (message: MessageItem) => {
+    const detail = message.notificationElem?.detail;
+    if (!detail || detail.trim() === "") return "";
+    if (detail === t("messageDescription.catchMessage")) return "";
+    try {
+      const parsed = JSON.parse(detail) as Record<string, any>;
+      if (typeof parsed === "string") return parsed;
+      if (typeof parsed.notification === "string") return parsed.notification;
+      if (typeof parsed.content === "string") return parsed.content;
+      if (typeof parsed.msg === "string") return parsed.msg;
+      const opUser = parsed.opUser as PublicUserItem | undefined;
+      if (message.contentType === MessageType.GroupAnnouncementUpdated && opUser?.userID) {
+        return `${getName(opUser)} 更新了群公告`;
+      }
+    } catch {
+      if (detail === t("messageDescription.catchMessage")) return "";
+      return detail;
+    }
+    return detail;
+  };
   try {
     switch (msg.contentType) {
       case MessageType.FriendAdded:
@@ -188,11 +208,64 @@ export const notificationMessageFormat = (msg: MessageItem) => {
             name: getName(dismissUser),
           }),
         });
+      case MessageType.GroupAnnouncementUpdated:
+      case MessageType.GroupMemberMuted:
+      case MessageType.GroupMemberCancelMuted:
+      case MessageType.GroupMuted:
+      case MessageType.GroupCancelMuted:
+      case MessageType.GroupNameUpdated:
+      case MessageType.RevokeMessage:
+      case MessageType.BurnMessageChange:
+      case MessageType.OANotification:
+        return getNotificationFallbackText(msg);
       default:
-        return "";
+        if (msg.notificationElem?.detail) {
+          const fallbackText = getNotificationFallbackText(msg);
+          if (fallbackText) return fallbackText;
+        }
+        // 尝试其他字段
+        const fromText = msg.textElem?.content?.trim();
+        const fromAtText = msg.atTextElem?.text?.trim();
+        const fromCustom = msg.customElem?.description?.trim();
+        return fromText || fromAtText || fromCustom || t("messageDescription.catchMessage");
     }
   } catch (error) {
-    return "";
+    // 对于已知的系统消息类型，返回默认描述
+    switch (msg.contentType) {
+      case MessageType.GroupCreated:
+        return t("messageDescription.createGroupMessage", { creator: t("someone") });
+      case MessageType.GroupInfoUpdated:
+        return t("messageDescription.updateGroupInfoMessage", { operator: t("someone") });
+      case MessageType.MemberQuit:
+        return t("messageDescription.quitGroupMessage", { name: t("someone") });
+      case MessageType.MemberInvited:
+        return t("messageDescription.invitedToGroupMessage", { operator: t("someone"), invitedUser: t("someone") });
+      case MessageType.MemberKicked:
+        return t("messageDescription.kickInGroupMessage", { operator: t("someone"), kickedUser: t("someone") });
+      case MessageType.MemberEnter:
+        return t("messageDescription.joinGroupMessage", { name: t("someone") });
+      case MessageType.GroupOwnerTransferred:
+        return t("messageDescription.transferGroupMessage", { owner: t("someone"), newOwner: t("someone") });
+      case MessageType.GroupDismissed:
+        return t("messageDescription.disbanedGroupMessage", { operator: t("someone") });
+      case MessageType.FriendAdded:
+        return t("messageDescription.alreadyFriendMessage");
+      case MessageType.GroupNameUpdated:
+      case MessageType.RevokeMessage:
+      case MessageType.BurnMessageChange:
+      case MessageType.OANotification:
+        return getNotificationFallbackText(msg);
+    }
+
+    if (msg.notificationElem?.detail) {
+      const fallbackText = getNotificationFallbackText(msg);
+      if (fallbackText) return fallbackText;
+    }
+    // 尝试其他字段
+    const fromText = msg.textElem?.content?.trim();
+    const fromAtText = msg.atTextElem?.text?.trim();
+    const fromCustom = msg.customElem?.description?.trim();
+    return fromText || fromAtText || fromCustom || t("messageDescription.catchMessage");
   }
 };
 
@@ -240,6 +313,26 @@ export const formatMessageByType = (message?: MessageItem): string => {
   const isSelf = (id: string) => id === selfUserID;
   const getName = (user: PublicUserItem) => {
     return user.userID === selfUserID ? t("you") : user.nickname;
+  };
+  const getNotificationFallbackText = () => {
+    const detail = message.notificationElem?.detail;
+    if (!detail || detail.trim() === "") return "";
+    if (detail === t("messageDescription.catchMessage")) return "";
+    try {
+      const parsed = JSON.parse(detail) as Record<string, any>;
+      if (typeof parsed === "string") return parsed;
+      if (typeof parsed.notification === "string") return parsed.notification;
+      if (typeof parsed.content === "string") return parsed.content;
+      if (typeof parsed.msg === "string") return parsed.msg;
+      const opUser = parsed.opUser as PublicUserItem | undefined;
+      if (message.contentType === MessageType.GroupAnnouncementUpdated && opUser?.userID) {
+        return `${getName(opUser)} 更新了群公告`;
+      }
+    } catch {
+      if (detail === t("messageDescription.catchMessage")) return "";
+      return detail;
+    }
+    return detail;
   };
   try {
     switch (message.contentType) {
@@ -321,11 +414,64 @@ export const formatMessageByType = (message?: MessageItem): string => {
         return t("messageDescription.disbanedGroupMessage", {
           operator: getName(dismissUser),
         });
+      case MessageType.GroupAnnouncementUpdated:
+      case MessageType.GroupMemberMuted:
+      case MessageType.GroupMemberCancelMuted:
+      case MessageType.GroupMuted:
+      case MessageType.GroupCancelMuted:
+      case MessageType.GroupNameUpdated:
+      case MessageType.RevokeMessage:
+      case MessageType.BurnMessageChange:
+      case MessageType.OANotification:
+        return getNotificationFallbackText();
       default:
-        return "";
+        if (message.notificationElem?.detail) {
+          const fallbackText = getNotificationFallbackText();
+          if (fallbackText) return fallbackText;
+        }
+        // 尝试其他字段
+        const fromText = message.textElem?.content?.trim();
+        const fromAtText = message.atTextElem?.text?.trim();
+        const fromCustom = message.customElem?.description?.trim();
+        return fromText || fromAtText || fromCustom || t("messageDescription.catchMessage");
     }
   } catch (error) {
-    return "";
+    // 对于已知的系统消息类型，返回默认描述
+    switch (message.contentType) {
+      case MessageType.GroupCreated:
+        return t("messageDescription.createGroupMessage", { creator: t("someone") });
+      case MessageType.GroupInfoUpdated:
+        return t("messageDescription.updateGroupInfoMessage", { operator: t("someone") });
+      case MessageType.MemberQuit:
+        return t("messageDescription.quitGroupMessage", { name: t("someone") });
+      case MessageType.MemberInvited:
+        return t("messageDescription.invitedToGroupMessage", { operator: t("someone"), invitedUser: t("someone") });
+      case MessageType.MemberKicked:
+        return t("messageDescription.kickInGroupMessage", { operator: t("someone"), kickedUser: t("someone") });
+      case MessageType.MemberEnter:
+        return t("messageDescription.joinGroupMessage", { name: t("someone") });
+      case MessageType.GroupOwnerTransferred:
+        return t("messageDescription.transferGroupMessage", { owner: t("someone"), newOwner: t("someone") });
+      case MessageType.GroupDismissed:
+        return t("messageDescription.disbanedGroupMessage", { operator: t("someone") });
+      case MessageType.FriendAdded:
+        return t("messageDescription.alreadyFriendMessage");
+      case MessageType.GroupNameUpdated:
+      case MessageType.RevokeMessage:
+      case MessageType.BurnMessageChange:
+      case MessageType.OANotification:
+        return getNotificationFallbackText();
+    }
+
+    if (message.notificationElem?.detail) {
+      const fallbackText = getNotificationFallbackText();
+      if (fallbackText) return fallbackText;
+    }
+    // 尝试其他字段
+    const fromText = message.textElem?.content?.trim();
+    const fromAtText = message.atTextElem?.text?.trim();
+    const fromCustom = message.customElem?.description?.trim();
+    return fromText || fromAtText || fromCustom || t("messageDescription.catchMessage");
   }
 };
 

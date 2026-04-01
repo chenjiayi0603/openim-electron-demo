@@ -76,7 +76,11 @@ const ChatContent = () => {
           }}
           computeItemKey={(_, item) => item.clientMsgID}
           itemContent={(_, message) => {
-            if (SystemMessageTypes.includes(message.contentType)) {
+            if (
+              SystemMessageTypes.includes(message.contentType) ||
+              message.sessionType === SessionType.Notification ||
+              Boolean(message.notificationElem?.detail)
+            ) {
               return (
                 <NotificationMessage key={message.clientMsgID} message={message} />
               );

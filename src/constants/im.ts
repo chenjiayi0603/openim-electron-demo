@@ -16,12 +16,14 @@ export const GroupSystemMessageTypes = [
   MessageType.GroupCancelMuted,
   MessageType.GroupMemberCancelMuted,
   MessageType.GroupNameUpdated,
+  MessageType.GroupAnnouncementUpdated,
 ];
 
 export const SystemMessageTypes = [
   MessageType.RevokeMessage,
   MessageType.FriendAdded,
   MessageType.BurnMessageChange,
+  MessageType.OANotification,
   ...GroupSystemMessageTypes,
 ];
 

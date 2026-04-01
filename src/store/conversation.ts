@@ -4,6 +4,7 @@ import {
   GroupMemberItem,
   MessageItem,
 } from "@openim/wasm-client-sdk/lib/types/entity";
+import { SessionType } from "@openim/wasm-client-sdk";
 import { t } from "i18next";
 import { create } from "zustand";
 
@@ -15,6 +16,24 @@ import { ConversationListUpdateType, ConversationStore } from "./type";
 import { useUserStore } from "./user";
 
 const CONVERSATION_SPLIT_COUNT = 500;
+
+const isNormalChatConversation = (conversation: ConversationItem) => {
+  if (conversation.conversationID?.startsWith("sn_")) return false;
+
+  if (!conversation.latestMsg) return true;
+  try {
+    const latestMessage = JSON.parse(conversation.latestMsg) as MessageItem;
+    if (latestMessage.sessionType === SessionType.Notification) return false;
+
+    return true;
+  } catch {
+    // If latestMsg is malformed, keep it to avoid accidentally hiding valid chats.
+    return true;
+  }
+};
+
+const filterVisibleConversations = (list: ConversationItem[]) =>
+  list.filter(isNormalChatConversation);
 
 export const useConversationStore = create<ConversationStore>()((set, get) => ({
   conversationList: [],
@@ -29,7 +48,7 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
         offset: isOffset ? get().conversationList.length : 0,
         count: CONVERSATION_SPLIT_COUNT,
       });
-      tmpConversationList = data;
+      tmpConversationList = filterVisibleConversations(data);
     } catch (error) {
       feedbackToast({ error, msg: t("toast.getConversationFailed") });
       return true;
@@ -46,27 +65,28 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
     list: ConversationItem[],
     type: ConversationListUpdateType,
   ) => {
-    const idx = list.findIndex(
+    const visibleList = filterVisibleConversations(list);
+    const idx = visibleList.findIndex(
       (c) => c.conversationID === get().currentConversation?.conversationID,
     );
-    if (idx > -1) get().updateCurrentConversation(list[idx]);
+    if (idx > -1) get().updateCurrentConversation(visibleList[idx]);
 
     if (type === "filter") {
       set((state) => ({
         conversationList: conversationSort(
-          [...list, ...state.conversationList],
+          [...visibleList, ...state.conversationList],
           state.conversationList,
         ),
       }));
       return;
     }
     let filterArr: ConversationItem[] = [];
-    const chids = list.map((ch) => ch.conversationID);
+    const chids = visibleList.map((ch) => ch.conversationID);
     filterArr = get().conversationList.filter(
       (tc) => !chids.includes(tc.conversationID),
     );
 
-    set(() => ({ conversationList: conversationSort([...list, ...filterArr]) }));
+    set(() => ({ conversationList: conversationSort([...visibleList, ...filterArr]) }));
   },
   updateCurrentConversation: async (
     conversation?: ConversationItem,
