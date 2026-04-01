@@ -24,7 +24,7 @@ import rtc_mic_off from "@/assets/images/rtc/rtc_mic_off.png";
 import { CustomType } from "@/constants";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
-import { feedbackToast } from "@/utils/common";
+import { feedbackToast, formatErrorDetails } from "@/utils/common";
 
 import { CounterHandle, ForwardCounter } from "./Counter";
 import { AuthData } from "./data";
@@ -38,6 +38,32 @@ interface IRtcControlProps {
   closeOverlay: () => void;
   sendCustomSignal: (recvID: string, customType: CustomType) => Promise<void>;
 }
+
+const resolvePeerUserID = (
+  invitation: RtcInvite,
+  selfID: string,
+  isRecv: boolean,
+): string => {
+  const inviter = invitation.inviterUserID;
+  const inviteePeer = invitation.inviteeUserIDList?.find((id) => id && id !== selfID);
+  if (isRecv && inviter) return inviter;
+  if (!isRecv && inviteePeer) return inviteePeer;
+
+  const extra = invitation as unknown as {
+    request?: { fromUserID?: string; toUserID?: string };
+    fromToUserID?: { fromUserID?: string; toUserID?: string };
+  };
+  const requestPeer =
+    extra.request?.fromUserID === selfID
+      ? extra.request?.toUserID
+      : extra.request?.fromUserID;
+  if (requestPeer) return requestPeer;
+  const pairPeer =
+    extra.fromToUserID?.fromUserID === selfID
+      ? extra.fromToUserID?.toUserID
+      : extra.fromToUserID?.fromUserID;
+  return pairPeer ?? "";
+};
 export const RtcControl = ({
   isWaiting,
   isRecv,
@@ -48,20 +74,27 @@ export const RtcControl = ({
   sendCustomSignal,
 }: IRtcControlProps) => {
   const room = useRoomContext();
+  const selfID = useUserStore((state) => state.selfInfo.userID);
   const localParticipantState = useLocalParticipant();
   const counterRef = useRef<CounterHandle>(null);
 
-  const recvID = isRecv ? invitation.inviterUserID : invitation.inviteeUserIDList[0];
+  const recvID = resolvePeerUserID(invitation, selfID, isRecv);
   const isVideoCall = invitation.mediaType === "video";
 
   useEffect(() => {
     const acceptHandler = async ({ roomID }: RtcInvite) => {
       if (invitation.roomID !== roomID) return;
-      const { data } = await getRtcConnectData(
-        roomID,
-        useUserStore.getState().selfInfo.userID,
-      );
-      connectRtc(data);
+      try {
+        const { data } = await getRtcConnectData(
+          roomID,
+          useUserStore.getState().selfInfo.userID,
+        );
+        connectRtc(data);
+      } catch (error) {
+        // 主叫收到对方 CallingAccept 后拉 token；未 catch 会导致 Uncaught (in promise)
+        feedbackToast({ msg: t("toast.rtcTokenFailed"), error });
+        closeOverlay();
+      }
     };
     const rejectHandler = ({ roomID }: RtcInvite) => {
       if (invitation.roomID !== roomID) return;
@@ -95,7 +128,7 @@ export const RtcControl = ({
             customType: CustomType;
           };
           if (customData.customType === CustomType.CallingAccept) {
-            acceptHandler(customData.data);
+            void acceptHandler(customData.data);
           }
           if (customData.customType === CustomType.CallingReject) {
             rejectHandler(customData.data);
@@ -116,29 +149,57 @@ export const RtcControl = ({
       IMSDK.off(CbEvents.OnRecvNewMessages, newMessageHandler);
       room.off(RoomEvent.ParticipantDisconnected, participantDisconnectedHandler);
     };
-  }, [room, invitation.roomID, isWaiting]);
+  }, [room, invitation.roomID, isWaiting, connectRtc, closeOverlay]);
 
   const hungup = () => {
-    if (isWaiting) {
-      const customType = isRecv ? CustomType.CallingReject : CustomType.CallingCancel;
-      sendCustomSignal(recvID, customType);
+    if (!recvID) {
+      feedbackToast({ msg: t("toast.rtcAcceptSignalFailed"), error: "missing recvID" });
       closeOverlay();
       return;
     }
-    sendCustomSignal(recvID, CustomType.CallingHungup);
+    const onSignalFail = (error: unknown) => {
+      console.error(
+        "[RtcControl] sendCustomSignal failed",
+        formatErrorDetails(error),
+        error,
+      );
+    };
+    if (isWaiting) {
+      const customType = isRecv ? CustomType.CallingReject : CustomType.CallingCancel;
+      void sendCustomSignal(recvID, customType).catch(onSignalFail);
+      closeOverlay();
+      return;
+    }
+    void sendCustomSignal(recvID, CustomType.CallingHungup).catch(onSignalFail);
     room.disconnect();
   };
 
   const acceptInvitation = async () => {
+    if (!recvID) {
+      feedbackToast({ msg: t("toast.rtcAcceptSignalFailed"), error: "missing recvID" });
+      closeOverlay();
+      return;
+    }
     try {
       await sendCustomSignal(recvID, CustomType.CallingAccept);
+    } catch (error) {
+      const code = (error as { errCode?: number })?.errCode;
+      const msg =
+        code === 1004
+          ? `${t("toast.rtcAcceptSignalFailed")} ${t("toast.rtcAcceptSignal1004")}`
+          : t("toast.rtcAcceptSignalFailed");
+      feedbackToast({ msg, error });
+      closeOverlay();
+      return;
+    }
+    try {
       const { data } = await getRtcConnectData(
         invitation.roomID,
         useUserStore.getState().selfInfo.userID,
       );
       connectRtc(data);
     } catch (error) {
-      feedbackToast({ msg: t("toast.byInviteUserFailed"), error });
+      feedbackToast({ msg: t("toast.rtcTokenFailed"), error });
       closeOverlay();
     }
   };

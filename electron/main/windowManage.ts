@@ -51,6 +51,28 @@ export function createMainWindow() {
     },
   });
 
+  // 浏览器会弹窗授权摄像头/麦克风；Electron 需显式放行，否则 LiveKit 麦/视频按钮无响应
+  const grantMedia = (
+    _wc: Electron.WebContents,
+    permission: string,
+    callback: (granted: boolean) => void,
+  ) => {
+    if (permission === "media" || permission === "display-capture") {
+      callback(true);
+      return;
+    }
+    callback(false);
+  };
+  mainWindow.webContents.session.setPermissionRequestHandler(grantMedia);
+  mainWindow.webContents.session.setPermissionCheckHandler(
+    (_wc, permission, _requestingOrigin, _details) => {
+      if (permission === "media" || permission === "display-capture") {
+        return true;
+      }
+      return false;
+    },
+  );
+
   sdkInstance = initIMSDK(mainWindow.webContents);
 
   if (process.env.VITE_DEV_SERVER_URL) {

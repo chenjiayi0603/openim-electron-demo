@@ -25,9 +25,13 @@ openim-electron-demo 运维脚本
 
 命令:
   install                 安装依赖（npm install）
-  start                   启动开发服务（默认 web 模式）
+  build                   生产编译（npm run build，Electron + 前端，产物 dist/、dist-electron/）
+  build-web               仅 Web 静态资源编译（vite build + vite.web.config.ts，产物 dist/）
+  start                   启动开发服务（默认仅 Web：Vite，无 Electron 窗口）
+  start-electron          启动 PC 桌面端（npm run dev = Vite + Electron）
   stop                    停止开发服务
-  restart                 重启开发服务（stop + start）
+  restart                 重启（默认与 start 相同：仅 Web）
+  restart-electron        重启为 PC 桌面端开发模式
   status                  查看运行状态（进程 + 端口）
   check                   健康检查（HTTP 探活）
   logs                    实时查看开发日志
@@ -38,12 +42,20 @@ openim-electron-demo 运维脚本
 环境变量:
   HOST                    默认: 127.0.0.1
   PORT                    默认: 5173
-  DEV_TARGET              默认: web，可选 web/electron
+  DEV_TARGET              默认: web（仅浏览器）；设为 electron 等同 start-electron
   CHECK_HOST              默认: 127.0.0.1（健康检查地址）
   LOG_DIR                 默认: ./_output/logs
   RUN_DIR                 默认: ./_output/run
   PID_FILE                默认: $RUN_DIR/openim-electron-demo.pid
   DEV_LOG_FILE            默认: $LOG_DIR/dev.log
+
+示例:
+  ./scripts/ops.sh install
+  ./scripts/ops.sh build
+  ./scripts/ops.sh build-web
+  ./scripts/ops.sh start
+  ./scripts/ops.sh start-electron
+  DEV_TARGET=electron ./scripts/ops.sh restart
 EOF
 }
 
@@ -82,6 +94,36 @@ install_deps() {
   )
 }
 
+ensure_node_modules() {
+  if [[ ! -d "$ROOT_DIR/node_modules" ]]; then
+    log "检测到 node_modules 不存在，先安装依赖..."
+    install_deps
+  fi
+}
+
+build_electron() {
+  need_cmd npm
+  ensure_node_modules
+  log "编译（Electron 完整包）: npm run build ..."
+  (
+    cd "$ROOT_DIR"
+    npm run build
+  )
+  log "完成。静态资源一般在 dist/，Electron 主进程等在 dist-electron/（以 vite.config 为准）。"
+}
+
+build_web_only() {
+  need_cmd npm
+  need_cmd npx
+  ensure_node_modules
+  log "编译（仅 Web）: vite build --config vite.web.config.ts ..."
+  (
+    cd "$ROOT_DIR"
+    npx vite build --config vite.web.config.ts
+  )
+  log "完成。产物目录一般为 dist/。"
+}
+
 start_server() {
   need_cmd npm
   need_cmd npx
@@ -94,12 +136,15 @@ start_server() {
     return
   fi
 
-  if [[ ! -d "$ROOT_DIR/node_modules" ]]; then
-    log "检测到 node_modules 不存在，先安装依赖..."
-    install_deps
+  ensure_node_modules
+
+  if [[ "$DEV_TARGET" == "electron" ]]; then
+    log "模式: Electron（PC 桌面端）+ Vite — http://$HOST:$PORT"
+  else
+    log "模式: Web（仅 Vite，无 Electron；PC 端请用: ./scripts/ops.sh start-electron）"
+    log "开发页: http://$HOST:$PORT"
   fi
 
-  log "启动开发服务: http://$HOST:$PORT"
   (
     cd "$ROOT_DIR"
     if [[ "$DEV_TARGET" == "electron" ]]; then
@@ -203,7 +248,18 @@ case "$cmd" in
   install)
     install_deps
     ;;
+  build)
+    build_electron
+    ;;
+  build-web)
+    build_web_only
+    ;;
   start)
+    start_server
+    ;;
+  start-electron)
+    DEV_TARGET=electron
+    export DEV_TARGET
     start_server
     ;;
   stop)
@@ -211,6 +267,12 @@ case "$cmd" in
     ;;
   restart)
     stop_server
+    start_server
+    ;;
+  restart-electron)
+    stop_server
+    DEV_TARGET=electron
+    export DEV_TARGET
     start_server
     ;;
   status)

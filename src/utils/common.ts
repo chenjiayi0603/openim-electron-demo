@@ -13,12 +13,33 @@ interface FeedbackError extends Error {
   errMsg?: string;
   errDlt?: string;
 }
+
+/** Chat/OpenIM 常返回普通对象而非 Error，避免控制台只显示 "Object" */
+export const formatErrorDetails = (error: unknown): string => {
+  if (error == null) return "";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  const o = error as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof o.errCode === "number") parts.push(`errCode=${o.errCode}`);
+  if (typeof o.errMsg === "string") parts.push(o.errMsg);
+  if (typeof o.errDlt === "string" && o.errDlt !== o.errMsg) parts.push(o.errDlt);
+  if (typeof o.message === "string" && !parts.length) parts.push(o.message);
+  if (parts.length) return parts.join(" | ");
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+};
+
 export const feedbackToast = (config?: FeedbackToastParams) => {
   const { msg, error, duration, onClose } = config ?? {};
   let content = "";
   if (error) {
     content =
       (error as FeedbackError)?.message ??
+      (error as FeedbackError)?.errMsg ??
       (error as FeedbackError)?.errDlt ??
       t("toast.accessFailed");
   }
@@ -29,7 +50,8 @@ export const feedbackToast = (config?: FeedbackToastParams) => {
     onClose,
   });
   if (error) {
-    console.error(msg, error);
+    const detail = formatErrorDetails(error);
+    console.error(msg ?? "error", detail || "(no detail)", error);
   }
 };
 

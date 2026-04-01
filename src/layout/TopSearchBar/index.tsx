@@ -70,26 +70,56 @@ const TopSearchBar = () => {
         if (message.contentType === MessageType.CustomMessage) {
           const customData = JSON.parse(message.customElem!.data);
           if (customData.customType === CustomType.CallingInvite) {
-            rtcInvite = customData.data;
+            const rawInvite = customData.data as RtcInvite & {
+              request?: { fromUserID?: string; toUserID?: string };
+            };
+            const inviterFromPayload =
+              rawInvite?.inviterUserID || rawInvite?.request?.fromUserID;
+            const inviterUserID = inviterFromPayload || message.sendID;
+            rtcInvite = {
+              ...rawInvite,
+              inviterUserID,
+            };
           }
         }
       });
       if (rtcInvite) {
-        getBusinessUserInfo([rtcInvite.inviterUserID]).then(({ data: { users } }) => {
-          if (users.length === 0) return;
-          setInviteData({
-            invitation: rtcInvite,
-            participant: {
-              userInfo: {
-                nickname: users[0].nickname,
-                faceURL: users[0].faceURL,
-                userID: users[0].userID,
-                ex: "",
+        getBusinessUserInfo([rtcInvite.inviterUserID])
+          .then(({ data: { users } }) => {
+            const userInfo =
+              users.length > 0
+                ? {
+                    nickname: users[0].nickname,
+                    faceURL: users[0].faceURL,
+                    userID: users[0].userID,
+                    ex: "",
+                  }
+                : {
+                    nickname: rtcInvite!.inviterUserID,
+                    faceURL: "",
+                    userID: rtcInvite!.inviterUserID,
+                    ex: "",
+                  };
+            setInviteData({
+              invitation: rtcInvite,
+              participant: { userInfo },
+            });
+            rtcRef.current?.openOverlay();
+          })
+          .catch(() => {
+            setInviteData({
+              invitation: rtcInvite,
+              participant: {
+                userInfo: {
+                  nickname: rtcInvite!.inviterUserID,
+                  faceURL: "",
+                  userID: rtcInvite!.inviterUserID,
+                  ex: "",
+                },
               },
-            },
+            });
+            rtcRef.current?.openOverlay();
           });
-          rtcRef.current?.openOverlay();
-        });
       }
     };
 
