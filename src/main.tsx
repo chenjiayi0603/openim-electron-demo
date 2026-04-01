@@ -7,6 +7,12 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { isSaveLog } from "./config";
 
+// Web mode uses hash router. Ensure direct access without hash
+// (e.g. http://127.0.0.1:5173) lands on a valid route.
+if (!window.electronAPI && !window.location.hash) {
+  window.location.hash = "/login";
+}
+
 if (window.electronAPI && isSaveLog) {
   const sdkLogger = log.scope("openim-sdk-core");
   console.debug = sdkLogger.debug.bind(sdkLogger);

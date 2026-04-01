@@ -13,6 +13,8 @@ PID_FILE="${PID_FILE:-$RUN_DIR/openim-electron-demo.pid}"
 DEV_LOG_FILE="${DEV_LOG_FILE:-$LOG_DIR/dev.log}"
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-5173}"
+DEV_TARGET="${DEV_TARGET:-web}"
+CHECK_HOST="${CHECK_HOST:-127.0.0.1}"
 
 usage() {
   cat <<'EOF'
@@ -23,7 +25,7 @@ openim-electron-demo 运维脚本
 
 命令:
   install                 安装依赖（npm install）
-  start                   启动开发服务（npm run dev）
+  start                   启动开发服务（默认 web 模式）
   stop                    停止开发服务
   restart                 重启开发服务（stop + start）
   status                  查看运行状态（进程 + 端口）
@@ -36,6 +38,8 @@ openim-electron-demo 运维脚本
 环境变量:
   HOST                    默认: 127.0.0.1
   PORT                    默认: 5173
+  DEV_TARGET              默认: web，可选 web/electron
+  CHECK_HOST              默认: 127.0.0.1（健康检查地址）
   LOG_DIR                 默认: ./_output/logs
   RUN_DIR                 默认: ./_output/run
   PID_FILE                默认: $RUN_DIR/openim-electron-demo.pid
@@ -80,6 +84,7 @@ install_deps() {
 
 start_server() {
   need_cmd npm
+  need_cmd npx
   ensure_dirs
 
   local pid
@@ -97,7 +102,11 @@ start_server() {
   log "启动开发服务: http://$HOST:$PORT"
   (
     cd "$ROOT_DIR"
-    nohup npm run dev -- --host "$HOST" --port "$PORT" >"$DEV_LOG_FILE" 2>&1 &
+    if [[ "$DEV_TARGET" == "electron" ]]; then
+      nohup npm run dev -- --host "$HOST" --port "$PORT" >"$DEV_LOG_FILE" 2>&1 &
+    else
+      nohup npx vite --force --config vite.web.config.ts --host "$HOST" --port "$PORT" >"$DEV_LOG_FILE" 2>&1 &
+    fi
     echo $! >"$PID_FILE"
   )
 
@@ -153,7 +162,7 @@ status_server() {
 
 check_server() {
   need_cmd curl
-  local url="http://$HOST:$PORT"
+  local url="http://$CHECK_HOST:$PORT"
   if curl -sS -m 3 "$url" >/dev/null 2>&1; then
     log "健康检查通过: $url"
   else
