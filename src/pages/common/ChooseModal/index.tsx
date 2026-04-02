@@ -19,6 +19,7 @@ import { useConversationToggle } from "@/hooks/useConversationToggle";
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { FileWithPath } from "@/pages/chat/queryChat/ChatFooter/SendActionBar/useFileMessage";
+import { useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 import { emit } from "@/utils/events";
 import { uploadFile } from "@/utils/imCommon";
@@ -124,6 +125,7 @@ export const ChooseContact: FC<ChooseContactProps> = ({
   });
 
   const { toSpecifiedConversation } = useConversationToggle();
+  const selfUserID = useUserStore((state) => state.selfInfo.userID);
 
   useEffect(() => {
     if (isOverlayOpen && type === "CRATE_GROUP" && extraData) {
@@ -163,15 +165,22 @@ export const ChooseContact: FC<ChooseContactProps> = ({
             });
             break;
           }
-          await IMSDK.createGroup({
-            groupInfo: {
-              groupType: GroupType.WorkingGroup,
-              groupName: groupBaseInfo.groupName,
-              faceURL: groupBaseInfo.groupAvatar,
-            },
-            memberUserIDs: choosedList.map((item) => item.userID!),
-            adminUserIDs: [],
-          });
+          {
+            const { data: groupInfo } = await IMSDK.createGroup({
+              groupInfo: {
+                groupType: GroupType.WorkingGroup,
+                groupName: groupBaseInfo.groupName,
+                faceURL: groupBaseInfo.groupAvatar,
+              },
+              ownerUserID: selfUserID,
+              memberUserIDs: choosedList.map((item) => item.userID!),
+              adminUserIDs: [],
+            });
+            await toSpecifiedConversation({
+              sourceID: groupInfo.groupID,
+              sessionType: SessionType.WorkingGroup,
+            });
+          }
           break;
         case "INVITE_TO_GROUP":
           await IMSDK.inviteUserToGroup({
