@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
+import emitter from "@/utils/events";
 
 export default function useConversationState() {
   const syncState = useUserStore((state) => state.syncState);
@@ -18,13 +19,34 @@ export default function useConversationState() {
     }
   }, [syncState]);
 
-  useUpdateEffect(() => {
-    throttleCheckConversationState();
-  }, [currentConversation?.unreadCount]);
+  useEffect(() => {
+    const onChatListRendered = (renderedConversationID: string) => {
+      if (
+        renderedConversationID &&
+        renderedConversationID === latestCurrentConversation.current?.conversationID
+      ) {
+        throttleCheckConversationState();
+      }
+    };
+    emitter.on("CHAT_LIST_RENDERED", onChatListRendered);
+    return () => {
+      emitter.off("CHAT_LIST_RENDERED", onChatListRendered);
+    };
+  }, []);
 
   useEffect(() => {
-    checkConversationState();
-  }, [currentConversation?.conversationID]);
+    const onWindowActive = () => {
+      throttleCheckConversationState();
+    };
+
+    window.addEventListener("focus", onWindowActive);
+    document.addEventListener("visibilitychange", onWindowActive);
+
+    return () => {
+      window.removeEventListener("focus", onWindowActive);
+      document.removeEventListener("visibilitychange", onWindowActive);
+    };
+  }, []);
 
   const checkConversationState = () => {
     if (
@@ -32,6 +54,10 @@ export default function useConversationState() {
       latestSyncState.current === "loading"
     )
       return;
+
+    const isPageVisible = document.visibilityState === "visible";
+    const isWindowFocused = typeof document.hasFocus === "function" && document.hasFocus();
+    if (!isPageVisible || !isWindowFocused) return;
 
     if (latestCurrentConversation.current.unreadCount > 0) {
       IMSDK.markConversationMessageAsRead(

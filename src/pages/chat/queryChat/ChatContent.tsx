@@ -6,7 +6,7 @@ import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { SystemMessageTypes } from "@/constants/im";
 import { useUserStore } from "@/store";
-import emitter from "@/utils/events";
+import emitter, { emit } from "@/utils/events";
 
 import MessageItem from "./MessageItem";
 import NotificationMessage from "./NotificationMessage";
@@ -35,6 +35,19 @@ const ChatContent = () => {
       emitter.off("CHAT_LIST_SCROLL_TO_BOTTOM", scrollToBottom);
     };
   }, []);
+
+  useEffect(() => {
+    if (!conversationID || loadState.initLoading) return;
+
+    // Wait for list paint, then notify conversation state to handle read marking.
+    const timer = window.setTimeout(() => {
+      emit("CHAT_LIST_RENDERED", conversationID);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [conversationID, loadState.initLoading, loadState.messageList]);
 
   const loadMoreMessage = () => {
     if (!loadState.hasMoreOld || moreOldLoading) return;
