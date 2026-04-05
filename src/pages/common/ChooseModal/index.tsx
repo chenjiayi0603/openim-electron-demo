@@ -165,42 +165,37 @@ export const ChooseContact: FC<ChooseContactProps> = ({
     try {
       console.log('Executing switch for type:', type);
       switch (type) {
-        case "CRATE_GROUP":
-          if (choosedList.length === 1) {
-            toSpecifiedConversation({
-              sourceID: choosedList[0].userID!,
-              sessionType: SessionType.Single,
-            });
-            break;
-          }
-          {
-            console.log('Calling IMSDK.createGroup with:', {
-              groupInfo: {
-                groupType: GroupType.WorkingGroup,
-                groupName: groupBaseInfo.groupName,
-                faceURL: groupBaseInfo.groupAvatar,
-              },
-              ownerUserID: selfUserID,
-              memberUserIDs: choosedList.map((item) => item.userID!),
-              adminUserIDs: [],
-            });
-            const { data: groupInfo } = await IMSDK.createGroup({
-              groupInfo: {
-                groupType: GroupType.WorkingGroup,
-                groupName: groupBaseInfo.groupName,
-                faceURL: groupBaseInfo.groupAvatar,
-              },
-              ownerUserID: selfUserID,
-              memberUserIDs: choosedList.map((item) => item.userID!),
-              adminUserIDs: [],
-            });
-            console.log('IMSDK.createGroup success, groupInfo:', groupInfo);
-            await toSpecifiedConversation({
-              sourceID: groupInfo.groupID,
-              sessionType: SessionType.WorkingGroup,
-            });
-          }
+        case "CRATE_GROUP": {
+          // Owner is not in choosedList; one invitee is valid (2-person group).
+          // Do not redirect to single chat when length === 1 — that skips createGroup
+          // and the invitee never joins or receives group notifications.
+          console.log('Calling IMSDK.createGroup with:', {
+            groupInfo: {
+              groupType: GroupType.WorkingGroup,
+              groupName: groupBaseInfo.groupName,
+              faceURL: groupBaseInfo.groupAvatar,
+            },
+            ownerUserID: selfUserID,
+            memberUserIDs: choosedList.map((item) => item.userID!),
+            adminUserIDs: [],
+          });
+          const { data: groupInfo } = await IMSDK.createGroup({
+            groupInfo: {
+              groupType: GroupType.WorkingGroup,
+              groupName: groupBaseInfo.groupName,
+              faceURL: groupBaseInfo.groupAvatar,
+            },
+            ownerUserID: selfUserID,
+            memberUserIDs: choosedList.map((item) => item.userID!),
+            adminUserIDs: [],
+          });
+          console.log('IMSDK.createGroup success, groupInfo:', groupInfo);
+          await toSpecifiedConversation({
+            sourceID: groupInfo.groupID,
+            sessionType: SessionType.WorkingGroup,
+          });
           break;
+        }
         case "INVITE_TO_GROUP":
           await IMSDK.inviteUserToGroup({
             groupID: extraData as string,
