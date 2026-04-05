@@ -147,15 +147,23 @@ export const ChooseContact: FC<ChooseContactProps> = ({
   }, [isOverlayOpen]);
 
   const confirmChoose = async () => {
+    console.log('confirmChoose called, type:', type);
     const choosedList = chooseBoxRef.current?.getCheckedList() ?? [];
-    if (!choosedList?.length && type !== "SELECT_USER")
+    console.log('choosedList:', choosedList);
+    if (!choosedList?.length && type !== "SELECT_USER") {
+      console.log('Validation failed: no members selected');
       return message.warning(t("toast.selectLeastOne"));
+    }
 
-    if (!groupBaseInfo.groupName.trim() && type === "CRATE_GROUP")
+    if (!groupBaseInfo.groupName.trim() && type === "CRATE_GROUP") {
+      console.log('Validation failed: group name empty');
       return message.warning(t("toast.inputGroupName"));
+    }
 
+    console.log('Starting group creation, groupName:', groupBaseInfo.groupName);
     setLoading(true);
     try {
+      console.log('Executing switch for type:', type);
       switch (type) {
         case "CRATE_GROUP":
           if (choosedList.length === 1) {
@@ -166,6 +174,16 @@ export const ChooseContact: FC<ChooseContactProps> = ({
             break;
           }
           {
+            console.log('Calling IMSDK.createGroup with:', {
+              groupInfo: {
+                groupType: GroupType.WorkingGroup,
+                groupName: groupBaseInfo.groupName,
+                faceURL: groupBaseInfo.groupAvatar,
+              },
+              ownerUserID: selfUserID,
+              memberUserIDs: choosedList.map((item) => item.userID!),
+              adminUserIDs: [],
+            });
             const { data: groupInfo } = await IMSDK.createGroup({
               groupInfo: {
                 groupType: GroupType.WorkingGroup,
@@ -176,6 +194,7 @@ export const ChooseContact: FC<ChooseContactProps> = ({
               memberUserIDs: choosedList.map((item) => item.userID!),
               adminUserIDs: [],
             });
+            console.log('IMSDK.createGroup success, groupInfo:', groupInfo);
             await toSpecifiedConversation({
               sourceID: groupInfo.groupID,
               sessionType: SessionType.WorkingGroup,
@@ -212,8 +231,10 @@ export const ChooseContact: FC<ChooseContactProps> = ({
           break;
       }
     } catch (error) {
+      console.error('Error in confirmChoose:', error);
       feedbackToast({ error });
     }
+    console.log('confirmChoose completed successfully');
     setLoading(false);
     closeOverlay();
   };
