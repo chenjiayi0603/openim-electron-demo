@@ -173,7 +173,8 @@ export const generateAvatar = (str: string, size = 40) => {
   ctx!.fillStyle = colors[Math.floor(Math.random() * colors.length)];
   ctx!.fillRect(0, 0, size, size);
   ctx!.fillStyle = "rgb(255,255,255)";
-  ctx!.font = size * 0.4 + "px Arial";
+  /* Match global CJK stack — Arial alone shows tofu for Han on many Windows installs */
+  ctx!.font = `${size * 0.4}px "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif`;
   ctx!.textBaseline = "middle";
   ctx!.textAlign = "center";
   ctx!.fillText(str, size / 2, size / 2);

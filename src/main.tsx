@@ -1,3 +1,5 @@
+import "@fontsource/noto-sans-sc/400.css";
+
 import "./index.scss";
 import "./i18n/index";
 

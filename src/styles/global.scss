@@ -22,8 +22,9 @@
 html {
   height: var(--full-height);
 
-  font-family: "Noto Sans SC", "SF Pro SC", "SF Pro Text", "SF Pro Icons", "PingFang SC",
-    "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  /* Noto Sans SC is bundled via @fontsource in main.tsx; system fonts cover macOS/Windows/Linux CJK */
+  font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑",
+    "Segoe UI", "SF Pro SC", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
   div {
     color: var(--base-black);

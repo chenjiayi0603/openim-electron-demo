@@ -79,6 +79,7 @@
     "@ckeditor/ckeditor5-essentials": "43.0.0",
     "@ckeditor/ckeditor5-paragraph": "43.0.0",
     "@ckeditor/ckeditor5-react": "^8.0.0",
+    "@fontsource/noto-sans-sc": "^5.2.9",
     "@livekit/components-react": "2.6.9",
     "@livekit/components-styles": "1.1.4",
     "@openim/electron-client-sdk": "^3.8.3-patch.10",
