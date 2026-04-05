@@ -394,9 +394,14 @@ export function useGlobalEvent() {
     }
   };
   const groupMemberAddedHandler = ({ data }: WSEvent<GroupMemberItem>) => {
+    const selfID = useUserStore.getState().selfInfo.userID;
+    if (data.userID === selfID) {
+      // 被邀请入群等场景下，会话可能已同步但 OnJoinedGroupAdded 未更新本地 groupList
+      getGroupListByReq();
+    }
     if (
       data.groupID === useConversationStore.getState().currentConversation?.groupID &&
-      data.userID === useUserStore.getState().selfInfo.userID
+      data.userID === selfID
     ) {
       getCurrentMemberInGroupByReq(data.groupID);
     }

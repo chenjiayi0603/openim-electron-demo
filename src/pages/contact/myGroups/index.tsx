@@ -1,6 +1,6 @@
 import { GroupItem } from "@openim/wasm-client-sdk/lib/types/entity";
 import { Select } from "antd";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Virtuoso } from "react-virtuoso";
 
@@ -19,7 +19,12 @@ export const MyGroups = () => {
   const [selectGroup, setSelectGroup] = useState(GroupTypeEnum.CreatedGroup);
 
   const joinedGroupList = useContactStore((state) => state.groupList);
+  const getGroupListByReq = useContactStore((state) => state.getGroupListByReq);
   const { userID } = useUserStore((state) => state.selfInfo);
+
+  useEffect(() => {
+    getGroupListByReq();
+  }, [getGroupListByReq]);
 
   const handleChange = (value: string) => {
     setSelectGroup(Number(value));
@@ -43,7 +48,7 @@ export const MyGroups = () => {
       <div className="m-5.5 flex flex-row justify-between">
         <p className="text-base font-extrabold">{t("placeholder.myGroup")}</p>
         <Select
-          defaultValue={String(selectGroup)}
+          value={String(selectGroup)}
           popupClassName="p-0"
           style={{ width: 200 }}
           onChange={handleChange}
