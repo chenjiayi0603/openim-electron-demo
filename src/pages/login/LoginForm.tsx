@@ -1,7 +1,7 @@
 import { Button, Form, Input, QRCode, Select, Space, Tabs } from "antd";
 import { t } from "i18next";
 import md5 from "md5";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useLogin, useSendSms } from "@/api/login";
@@ -36,6 +36,7 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
   const [loginType, setLoginType] = useState<LoginType>(LoginType.Password);
   const { mutate: login, isLoading: loginLoading } = useLogin();
   const { mutate: semdSms } = useSendSms();
+  const loginInFlight = useRef(false);
 
   const [countdown, setCountdown] = useState(0);
   useEffect(() => {
@@ -53,6 +54,10 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
   }, [countdown]);
 
   const onFinish = (params: API.Login.LoginParams) => {
+    if (loginLoading || loginInFlight.current) {
+      return;
+    }
+    loginInFlight.current = true;
     if (loginType === 0) {
       params.password = md5(params.password ?? "");
     }
@@ -68,6 +73,9 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
         const { chatToken, imToken, userID } = data.data;
         setIMProfile({ chatToken, imToken, userID });
         navigate("/chat");
+      },
+      onSettled: () => {
+        loginInFlight.current = false;
       },
     });
   };
@@ -192,7 +200,13 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
         </div>
 
         <Form.Item className="mb-4">
-          <Button type="primary" htmlType="submit" block loading={loginLoading}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            loading={loginLoading}
+            disabled={loginLoading}
+          >
             {t("placeholder.login")}
           </Button>
         </Form.Item>

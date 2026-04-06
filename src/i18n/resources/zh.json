@@ -479,6 +479,7 @@
     "verificationCodeUsed": "验证码已被使用",
     "invitationCodeUsed": "邀请码已被使用",
     "invitationCodeNotExist": "邀请码不存在",
-    "operationRestriction": "操作限制"
+    "operationRestriction": "操作限制",
+    "loginTemporarilyLocked": "登录尝试过多，已暂时锁定，请约 10 分钟后再试或联系管理员"
   }
 }

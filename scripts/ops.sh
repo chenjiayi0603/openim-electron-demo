@@ -51,8 +51,8 @@ openim-electron-demo 运维脚本
 
 示例:
   ./scripts/ops.sh install
-  ./scripts/ops.sh build
-  ./scripts/ops.sh build-web
+  ./scripts/ops.sh build         # 构建 Electron + Web，产物包括 dist/ 和 dist-electron/
+  ./scripts/ops.sh build-web     # 仅构建 Web 静态资源，产物只是 dist/
   ./scripts/ops.sh start
   ./scripts/ops.sh start-electron
   DEV_TARGET=electron ./scripts/ops.sh restart

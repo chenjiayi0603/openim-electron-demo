@@ -23,27 +23,6 @@ export default function useConversationState() {
 
   useEffect(() => {
     const onChatListRendered = (renderedConversationID: string) => {
-      // #region agent log
-      fetch("http://127.0.0.1:7569/ingest/4583959c-10b5-46cf-b08d-6b29a02c2a95", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "cfa54e",
-        },
-        body: JSON.stringify({
-          sessionId: "cfa54e",
-          runId: "group-unread-debug-1",
-          hypothesisId: "H2",
-          location: "useConversationState.ts:26",
-          message: "receive CHAT_LIST_RENDERED",
-          data: {
-            renderedConversationID,
-            currentConversationID: latestCurrentConversation.current?.conversationID,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       latestRenderedConversationID.current = renderedConversationID;
       if (
         renderedConversationID &&
@@ -63,51 +42,8 @@ export default function useConversationState() {
     if (!conversationID) return;
     // Only auto-read after the current conversation list is actually rendered.
     if (latestRenderedConversationID.current !== conversationID) {
-      // #region agent log
-      fetch("http://127.0.0.1:7569/ingest/4583959c-10b5-46cf-b08d-6b29a02c2a95", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "cfa54e",
-        },
-        body: JSON.stringify({
-          sessionId: "cfa54e",
-          runId: "group-unread-debug-1",
-          hypothesisId: "H3",
-          location: "useConversationState.ts:64",
-          message: "skip unread effect due to render mismatch",
-          data: {
-            conversationID,
-            renderedConversationID: latestRenderedConversationID.current,
-            unreadCount: currentConversation?.unreadCount,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       return;
     }
-    // #region agent log
-    fetch("http://127.0.0.1:7569/ingest/4583959c-10b5-46cf-b08d-6b29a02c2a95", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "cfa54e",
-      },
-      body: JSON.stringify({
-        sessionId: "cfa54e",
-        runId: "group-unread-debug-1",
-        hypothesisId: "H3",
-        location: "useConversationState.ts:86",
-        message: "trigger unread effect check",
-        data: {
-          conversationID,
-          unreadCount: currentConversation?.unreadCount,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     throttleCheckConversationState();
   }, [currentConversation?.unreadCount]);
 
@@ -155,103 +91,19 @@ export default function useConversationState() {
       !latestCurrentConversation.current ||
       latestSyncState.current === "loading"
     ) {
-      // #region agent log
-      fetch("http://127.0.0.1:7569/ingest/4583959c-10b5-46cf-b08d-6b29a02c2a95", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "cfa54e",
-        },
-        body: JSON.stringify({
-          sessionId: "cfa54e",
-          runId: "group-unread-debug-1",
-          hypothesisId: "H4",
-          location: "useConversationState.ts:115",
-          message: "checkConversationState blocked by conversation/sync",
-          data: {
-            hasConversation: Boolean(latestCurrentConversation.current),
-            syncState: latestSyncState.current,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       return;
     }
 
     const isPageVisible = document.visibilityState === "visible";
     // Avoid clearing unread while app is in background.
     if (!isPageVisible) {
-      // #region agent log
-      fetch("http://127.0.0.1:7569/ingest/4583959c-10b5-46cf-b08d-6b29a02c2a95", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "cfa54e",
-        },
-        body: JSON.stringify({
-          sessionId: "cfa54e",
-          runId: "group-unread-debug-1",
-          hypothesisId: "H4",
-          location: "useConversationState.ts:136",
-          message: "checkConversationState blocked by visibility",
-          data: {
-            visibilityState: document.visibilityState,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       return;
     }
 
     if (latestCurrentConversation.current.unreadCount > 0) {
-      // #region agent log
-      fetch("http://127.0.0.1:7569/ingest/4583959c-10b5-46cf-b08d-6b29a02c2a95", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "cfa54e",
-        },
-        body: JSON.stringify({
-          sessionId: "cfa54e",
-          runId: "group-unread-debug-1",
-          hypothesisId: "H5",
-          location: "useConversationState.ts:156",
-          message: "call markConversationMessageAsRead",
-          data: {
-            conversationID: latestCurrentConversation.current.conversationID,
-            unreadCount: latestCurrentConversation.current.unreadCount,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       IMSDK.markConversationMessageAsRead(
         latestCurrentConversation.current.conversationID,
       );
-    } else {
-      // #region agent log
-      fetch("http://127.0.0.1:7569/ingest/4583959c-10b5-46cf-b08d-6b29a02c2a95", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "cfa54e",
-        },
-        body: JSON.stringify({
-          sessionId: "cfa54e",
-          runId: "group-unread-debug-1",
-          hypothesisId: "H5",
-          location: "useConversationState.ts:177",
-          message: "skip markConversationMessageAsRead due to zero unread",
-          data: {
-            conversationID: latestCurrentConversation.current.conversationID,
-            unreadCount: latestCurrentConversation.current.unreadCount,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
     }
   };
 

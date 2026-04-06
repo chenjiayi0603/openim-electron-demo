@@ -478,6 +478,7 @@
     "verificationCodeUsed": "Verification code already used",
     "invitationCodeUsed": "Invitation code already used",
     "invitationCodeNotExist": "Invitation code does not exist",
-    "operationRestriction": "Operation restricted"
+    "operationRestriction": "Operation restricted",
+    "loginTemporarilyLocked": "Too many login attempts. Try again in about 10 minutes or contact an administrator."
   }
 }
